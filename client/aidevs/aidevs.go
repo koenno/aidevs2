@@ -14,15 +14,14 @@ var (
 	}
 )
 
-type Client[T any] struct {
+type Client struct {
 }
 
-func (c Client[T]) Send(r *http.Request) (T, error) {
+func (c Client) Send(r *http.Request, respPayload any) error {
 	log.Printf("sending request %s to %s", r.Method, r.URL)
-	var respData T
 	resp, err := httpClient.Do(r)
 	if err != nil {
-		return respData, fmt.Errorf("failed to send request %s to %s", r.Method, r.URL)
+		return fmt.Errorf("failed to send request %s to %s", r.Method, r.URL)
 	}
 
 	defer func() {
@@ -31,14 +30,15 @@ func (c Client[T]) Send(r *http.Request) (T, error) {
 			log.Printf("failed to close response body from %s", r.URL)
 		}
 	}()
+	// TODO: check status code
 	contentType := resp.Header.Get("content-type")
 	if contentType != "application/json" {
-		return respData, fmt.Errorf("unsupported response content type from %s", r.URL)
+		return fmt.Errorf("unsupported response content type from %s", r.URL)
 	}
 
-	err = json.NewDecoder(resp.Body).Decode(&respData)
+	err = json.NewDecoder(resp.Body).Decode(respPayload)
 	if err != nil {
-		return respData, fmt.Errorf("failed to convert response payload: %v", err)
+		return fmt.Errorf("failed to convert response payload: %v", err)
 	}
-	return respData, nil
+	return nil
 }

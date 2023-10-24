@@ -9,24 +9,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type TestPayload struct {
+	Name string
+}
+
 func TestShouldReturnErrorWhenResponseHasUnsupportedType(t *testing.T) {
 	// given
 	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("content-type", "text/plain")
 	}))
-	sut := Client[string]{}
+	sut := Client{}
 	req, err := http.NewRequest(http.MethodGet, fakeServer.URL, nil)
 	assert.NoError(t, err)
+	var respPayload TestPayload
 
 	// when
-	_, err = sut.Send(req)
+	err = sut.Send(req, &respPayload)
 
 	// then
 	assert.Error(t, err)
-}
-
-type TestPayload struct {
-	Name string
 }
 
 func TestShouldReturnDecodedPauload(t *testing.T) {
@@ -38,14 +39,15 @@ func TestShouldReturnDecodedPauload(t *testing.T) {
 		w.Header().Add("content-type", "application/json")
 		json.NewEncoder(w).Encode(expectedPayload)
 	}))
-	sut := Client[TestPayload]{}
+	sut := Client{}
 	req, err := http.NewRequest(http.MethodGet, fakeServer.URL, nil)
 	assert.NoError(t, err)
+	var respPayload TestPayload
 
 	// when
-	respData, err := sut.Send(req)
+	err = sut.Send(req, &respPayload)
 
 	// then
 	assert.NoError(t, err)
-	assert.Equal(t, expectedPayload, respData)
+	assert.Equal(t, expectedPayload, respPayload)
 }
