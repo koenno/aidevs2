@@ -32,12 +32,13 @@ type Fetcher struct {
 	Creator TaskRequestCreator
 }
 
-type MsgStatus interface {
+type MsgModifier interface {
 	GetCode() int
 	GetMsg() string
+	SetToken(string)
 }
 
-func (s Fetcher) Fetch(taskName string, resp MsgStatus) error {
+func (s Fetcher) Fetch(taskName string, resp MsgModifier) error {
 	token, err := s.authenticate(taskName)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFetch, err)
@@ -47,6 +48,7 @@ func (s Fetcher) Fetch(taskName string, resp MsgStatus) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFetch, err)
 	}
+	resp.SetToken(token)
 	return nil
 }
 
@@ -80,7 +82,7 @@ func (s Fetcher) authenticate(taskName string) (string, error) {
 	return resp.Token, nil
 }
 
-func (s Fetcher) fetchTask(token string, resp MsgStatus) error {
+func (s Fetcher) fetchTask(token string, resp MsgModifier) error {
 	req, err := s.Creator.Task(token)
 	if err != nil {
 		return fmt.Errorf("%w: %v", errTask, err)

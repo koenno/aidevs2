@@ -33,22 +33,27 @@ func (s *FetcherTestSuite) SetupTest() {
 	}
 }
 
-type TestPayload struct {
+type TestTaskData struct {
 	Response
-	Name string
+	Token string
+	Name  string
 }
 
-func (p TestPayload) GetCode() int {
+func (p *TestTaskData) GetCode() int {
 	return p.Code
 }
 
-func (p TestPayload) GetMsg() string {
+func (p *TestTaskData) GetMsg() string {
 	return p.Msg
+}
+
+func (p *TestTaskData) SetToken(token string) {
+	p.Token = token
 }
 
 func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthRequestCreationFails() {
 	// given
-	var payload TestPayload
+	var payload TestTaskData
 
 	expectedErr := errors.New("fatal failure")
 	s.reqCreatorMock.EXPECT().Authenticate(s.sut.ApiKey, s.taskName).Return(nil, expectedErr).Once()
@@ -63,7 +68,7 @@ func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthRequestCreationFails() {
 
 func (s *FetcherTestSuite) TestShouldReturnErrorWhenSendingRequestFails() {
 	// given
-	var payload TestPayload
+	var payload TestTaskData
 
 	req, _ := http.NewRequest(http.MethodGet, "", nil)
 	s.reqCreatorMock.EXPECT().Authenticate(s.sut.ApiKey, s.taskName).Return(req, nil).Once()
@@ -81,7 +86,7 @@ func (s *FetcherTestSuite) TestShouldReturnErrorWhenSendingRequestFails() {
 
 func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthorizationResponseCodeIsNotZero() {
 	// given
-	var payload TestPayload
+	var payload TestTaskData
 
 	req, _ := http.NewRequest(http.MethodGet, "", nil)
 	s.reqCreatorMock.EXPECT().Authenticate(s.sut.ApiKey, s.taskName).Return(req, nil).Once()
@@ -103,7 +108,7 @@ func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthorizationResponseCodeIsN
 
 func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthorizationResponseTokenIsEmpty() {
 	// given
-	var payload TestPayload
+	var payload TestTaskData
 
 	req, _ := http.NewRequest(http.MethodGet, "", nil)
 	s.reqCreatorMock.EXPECT().Authenticate(s.sut.ApiKey, s.taskName).Return(req, nil).Once()
@@ -128,7 +133,7 @@ func (s *FetcherTestSuite) TestShouldReturnErrorWhenAuthorizationResponseTokenIs
 
 func (s *FetcherTestSuite) TestShouldFetchTask() {
 	// given
-	var payload TestPayload
+	var payload TestTaskData
 	token := "rghetrgt67ih"
 
 	reqAuth, _ := http.NewRequest(http.MethodPost, "", nil)
@@ -147,18 +152,19 @@ func (s *FetcherTestSuite) TestShouldFetchTask() {
 	reqTask, _ := http.NewRequest(http.MethodGet, "", nil)
 	s.reqCreatorMock.EXPECT().Task(token).Return(reqTask, nil).Once()
 
-	expectedPayload := TestPayload{
+	expectedTaskData := TestTaskData{
 		Response: Response{
 			Code: 0,
 			Msg:  "OK",
 		},
-		Name: "some name",
+		Name:  "some name",
+		Token: token,
 	}
 	s.clientMock.EXPECT().Send(reqTask, mock.Anything).Run(func(r *http.Request, respPayload interface{}) {
-		resp, ok := respPayload.(*TestPayload)
+		resp, ok := respPayload.(*TestTaskData)
 		s.True(ok)
-		resp.Response = expectedPayload.Response
-		resp.Name = expectedPayload.Name
+		resp.Response = expectedTaskData.Response
+		resp.Name = expectedTaskData.Name
 	}).Return(nil).Once()
 
 	// when
@@ -166,5 +172,5 @@ func (s *FetcherTestSuite) TestShouldFetchTask() {
 
 	// then
 	s.NoError(err)
-	s.Equal(expectedPayload, payload)
+	s.Equal(expectedTaskData, payload)
 }
