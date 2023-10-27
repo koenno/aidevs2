@@ -53,17 +53,17 @@ func (f Factory) Task(token string) (*http.Request, error) {
 }
 
 type AnswerRequest struct {
-	Answer string `json:"answer"`
+	Answer any `json:"answer"`
 }
 
-func (f Factory) Answer(token, answerStr string) (*http.Request, error) {
+func (f Factory) Answer(token string, answerData any) (*http.Request, error) {
 	rawURL := fmt.Sprintf("%s/answer/%s", endpoint, token)
 	URL, err := url.Parse(rawURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse a task url: %v", err)
 	}
 	payload := AnswerRequest{
-		Answer: answerStr,
+		Answer: answerData,
 	}
 	bb, err := json.Marshal(payload)
 	if err != nil {

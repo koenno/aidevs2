@@ -32,13 +32,13 @@ type Fetcher struct {
 	Creator TaskRequestCreator
 }
 
-type MsgModifier interface {
+type AIDevsTask interface {
 	GetCode() int
 	GetMsg() string
 	SetToken(string)
 }
 
-func (s Fetcher) Fetch(taskName string, resp MsgModifier) error {
+func (s Fetcher) Fetch(taskName string, resp AIDevsTask) error {
 	token, err := s.authenticate(taskName)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrFetch, err)
@@ -82,7 +82,7 @@ func (s Fetcher) authenticate(taskName string) (string, error) {
 	return resp.Token, nil
 }
 
-func (s Fetcher) fetchTask(token string, resp MsgModifier) error {
+func (s Fetcher) fetchTask(token string, resp AIDevsTask) error {
 	req, err := s.Creator.Task(token)
 	if err != nil {
 		return fmt.Errorf("%w: %v", errTask, err)
@@ -100,7 +100,7 @@ func (s Fetcher) fetchTask(token string, resp MsgModifier) error {
 
 //go:generate mockery --name=AnswerRequestCreator --case underscore --with-expecter
 type AnswerRequestCreator interface {
-	Answer(token, answerStr string) (*http.Request, error)
+	Answer(token string, answerData any) (*http.Request, error)
 }
 
 type Answerer struct {
@@ -108,8 +108,8 @@ type Answerer struct {
 	Creator AnswerRequestCreator
 }
 
-func (a Answerer) Answer(token, answer string) error {
-	req, err := a.Creator.Answer(token, answer)
+func (a Answerer) Answer(token string, answerData any) error {
+	req, err := a.Creator.Answer(token, answerData)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrAnswer, err)
 	}
