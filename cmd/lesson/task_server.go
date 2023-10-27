@@ -29,7 +29,7 @@ func (s TaskServer) FetchTask(name string, taskData task.AIDevsTask) error {
 	if err != nil {
 		return fmt.Errorf("failed to solve the task %s: %v", name, err)
 	}
-	log.Printf("fetched following task: %+v", taskData)
+	log.Printf("fetched following task: %#v", taskData)
 	return nil
 }
 
@@ -38,7 +38,7 @@ func (s TaskServer) SendSolution(token string, solution any) error {
 		Client:  client,
 		Creator: reqFactory,
 	}
-	log.Printf("sending following solution: %+v", solution)
+	log.Printf("sending following solution: %#v", solution)
 	err := taskAnswerer.Answer(token, solution)
 	if err != nil {
 		return fmt.Errorf("failed to send an answers: %v", err)
