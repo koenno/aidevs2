@@ -1,1 +1,16 @@
 # aidevs2
+
+##
+
+### C02L03
+
+    to describe a user message as JSON with following structure: {"kategoria":"pralka (a household appliance from following categories: pralka/telewizor/zmywarka)", "producent":"Whirpool (a producer of a household appliance)", "akcja":"action (one of following actions: zwrot, naprawa)", "data":"20231102 (present only if you know the current date, format YYYYMMDD)"}, we need to follow these rules:
+    - Always strictly follow the JSON structure described above with special care and attention.
+    - Tags should be semantic tags that describe and enrich the query.
+    - Commands for me to write, say, translate are query, not action.
+
+    examples:
+    {"kategoria":"pralka","producent":"Whirpool","akcja":"zwrot","data":"20231102"}
+
+    context:
+    today is 2023-11-02
