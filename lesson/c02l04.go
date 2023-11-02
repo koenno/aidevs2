@@ -1,12 +1,10 @@
 package lesson
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/koenno/aidevs2/moderation"
@@ -23,6 +21,7 @@ type C02L04Creator struct {
 func (c C02L04Creator) Create(openaiKey string) TaskSolver {
 	client := openai.NewClient(openaiKey)
 	return C02L04{
+		transcriptor: client,
 		moderator: moderation.Moderator{
 			OpenAIMod: client,
 		},
@@ -30,9 +29,14 @@ func (c C02L04Creator) Create(openaiKey string) TaskSolver {
 	}
 }
 
+type Transcriptor interface {
+	CreateTranscription(context.Context, openai.AudioRequest) (openai.AudioResponse, error)
+}
+
 type C02L04 struct {
-	moderator Moderator
-	taskName  string
+	transcriptor Transcriptor
+	moderator    Moderator
+	taskName     string
 }
 
 type C02L04Task struct {
@@ -74,75 +78,44 @@ func (l C02L04) getSolution(task C02L04Task) (C02L04Solution, error) {
 	const phrase = "please return transcription of this file: "
 	parts := strings.SplitAfter(task.Msg, phrase)
 	fileURL := parts[len(parts)-1]
-	fileName := getFilePath(fileURL)
-	err := DownloadFile(fileName, fileURL)
+	text, err := l.transcript(fileURL)
 	if err != nil {
-		return "", fmt.Errorf("solution %s failure: %v", l.taskName, err)
+		return "", fmt.Errorf("failed to transcribe: %v", err)
 	}
-	_, err = l.whisper(fileName, "pl", ".", "txt")
-	if err != nil {
-		return "", fmt.Errorf("failed to transcript file %s: %v", fileName, err)
-	}
-	newFileName := newExtension(fileName, "txt")
-	f, err := os.OpenFile(newFileName, os.O_RDONLY, 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to open file %s: %v", newFileName, err)
-	}
-	bb, err := io.ReadAll(f)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file %s: %v", newFileName, err)
-	}
-	transcript := string(bb)
 	// transcript = strings.ReplaceAll(transcript, "\n", " ")
 	// transcript = strings.Trim(transcript, " ")
-	log.Printf("%s | %v", fileURL, transcript)
-	return C02L04Solution(transcript), nil
+	log.Printf("%s | %v", fileURL, text)
+	return C02L04Solution(text), nil
 }
 
-func getFilePath(fileURL string) string {
-	parts := strings.Split(fileURL, "/")
-	fileName := parts[len(parts)-1]
-	return fileName
-}
-
-func newExtension(fileName, extension string) string {
-	parts := strings.Split(fileName, ".")
-	parts[len(parts)-1] = extension
-	return strings.Join(parts, ".")
-}
-
-func DownloadFile(filepath string, url string) error {
-	resp, err := http.Get(url)
+func (l C02L04) transcript(URL string) (string, error) {
+	resp, err := http.Get(URL)
 	if err != nil {
-		return err
+		return "", fmt.Errorf("download failure: %v", err)
 	}
 	defer resp.Body.Close()
 
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
+	fileName := getFilePath(URL)
+	log.Printf("file name: %s", fileName)
 
-	_, err = io.Copy(out, resp.Body)
-	return err
+	req := openai.AudioRequest{
+		Model:       openai.Whisper1,
+		FilePath:    fileName,
+		Reader:      resp.Body,
+		Prompt:      "",
+		Temperature: 0,
+		Language:    "pl",
+		Format:      openai.AudioResponseFormatJSON,
+	}
+	transResp, err := l.transcriptor.CreateTranscription(context.Background(), req)
+	if err != nil {
+		return "", fmt.Errorf("transcription error: %v", err)
+	}
+
+	return transResp.Text, nil
 }
 
-func (l C02L04) whisper(path, lang, out, format string) (string, error) {
-	// whisper mateusz.mp3 --language pl -f all -o whisper_out
-	args := []string{
-		path,
-		"--language", lang,
-		"-f", format,
-		"-o", out,
-		"--model", "base",
-	}
-	cmd := exec.Command("whisper", args...)
-	bb, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("whisper failure: %v", err)
-	}
-	result := string(bb)
-	log.Printf("whisper output: %s", result)
-	return result, nil
+func getFilePath(URL string) string {
+	parts := strings.Split(URL, "/")
+	return parts[len(parts)-1]
 }
