@@ -82,8 +82,6 @@ func (l C02L04) getSolution(task C02L04Task) (C02L04Solution, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to transcribe: %v", err)
 	}
-	// transcript = strings.ReplaceAll(transcript, "\n", " ")
-	// transcript = strings.Trim(transcript, " ")
 	log.Printf("%s | %v", fileURL, text)
 	return C02L04Solution(text), nil
 }
