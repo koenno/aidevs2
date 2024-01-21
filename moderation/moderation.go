@@ -15,7 +15,7 @@ type Moderator struct {
 	OpenAIMod OpenAIModerator
 }
 
-// Moderate returns true is moderation is required and the given entry does not fullfil openai usage policy
+// Moderate returns true if moderation is required and the given entry does not fullfil openai usage policy
 func (m Moderator) Moderate(ctx context.Context, entry string) (bool, error) {
 	req := openai.ModerationRequest{
 		Input: entry,
