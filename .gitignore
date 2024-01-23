@@ -21,3 +21,6 @@
 go.work
 
 mateusz.*
+
+qdrant_storage
+mongo_storage

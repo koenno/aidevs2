@@ -14,7 +14,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-const collectionName = "aidevs2_c03l04"
+const C03L04CollectionName = "aidevs2_c03l04"
 
 func init() {
 	registry["c03l04"] = C03L04Creator{}
@@ -124,15 +124,15 @@ func (l C03L04) getSolution(task C03L04Task) (C03L04Solution, error) {
 	}()
 
 	ctx := context.Background()
-	exist, err := l.db.CollectionExist(ctx, collectionName)
+	exist, err := l.db.CollectionExist(ctx, C03L04CollectionName)
 	if err != nil {
 		return "", fmt.Errorf("failed to check collection presence: %v", err)
 	}
 	if !exist {
-		if err := l.db.CreateCollection(ctx, collectionName); err != nil {
+		if err := l.db.CreateCollection(ctx, C03L04CollectionName); err != nil {
 			return "", fmt.Errorf("failed to create collection: %v", err)
 		}
-		log.Printf("collection '%s' created", collectionName)
+		log.Printf("collection '%s' created", C03L04CollectionName)
 		var archive []ArchiveEntry
 		if err := json.NewDecoder(f).Decode(&archive); err != nil {
 			return "", fmt.Errorf("failed to decode file content '%s': %v", filePath, err)
@@ -178,7 +178,7 @@ func (l C03L04) storeEntries(ctx context.Context, entries []ArchiveEntry) error 
 		entities = append(entities, entity)
 	}
 	log.Printf("embeddings created")
-	err := l.db.UpsertMany(context.Background(), collectionName, entities)
+	err := l.db.UpsertMany(context.Background(), C03L04CollectionName, entities)
 	if err != nil {
 		return fmt.Errorf("failed to upsert archive entity: %v", err)
 	}
@@ -195,7 +195,7 @@ func (l C03L04) findAnswer(ctx context.Context, question string) (string, error)
 		return "", fmt.Errorf("no embedding for question '%s'", question)
 	}
 	var entities []ArchiveEntity
-	err = l.db.Search(ctx, collectionName, embedding, &entities, vectordb.WithLimit(1))
+	err = l.db.Search(ctx, C03L04CollectionName, embedding, &entities, vectordb.WithLimit(1))
 	if err != nil {
 		return "", fmt.Errorf("failed to find answer: %v", err)
 	}
