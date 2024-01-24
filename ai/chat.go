@@ -46,6 +46,22 @@ func (c *Chat) ModeratedChat(system, user, assistant string) (string, error) {
 	return resp, nil
 }
 
+func (c *Chat) ModeratedFunctionCalling(system, user, assistant string, funcDefs []openai.FunctionDefinition) (*openai.FunctionCall, error) {
+	msg := system + user + assistant
+	moderationRequired, err := c.Moderate(context.Background(), msg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to moderate entry: %v", err)
+	}
+	if moderationRequired {
+		return nil, fmt.Errorf("entry breaks openai usage policies: %s", system)
+	}
+	resp, err := c.FunctionCalling(system, user, assistant, funcDefs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute moderated function calling: %v", err)
+	}
+	return resp, nil
+}
+
 // Moderate returns true if moderation is required and the given entry does not fullfil openai usage policy
 func (c *Chat) Moderate(ctx context.Context, entry string) (bool, error) {
 	req := openai.ModerationRequest{
@@ -93,4 +109,41 @@ func (c *Chat) CompleteChat(system, user, assistant string) (string, error) {
 		return "", fmt.Errorf("empty response received")
 	}
 	return resp.Choices[0].Message.Content, nil
+}
+
+func (c *Chat) FunctionCalling(system, user, assistant string, funcDefs []openai.FunctionDefinition) (*openai.FunctionCall, error) {
+	req := openai.ChatCompletionRequest{
+		Model: c.model,
+		Messages: []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: system,
+			},
+			{
+				Role:    openai.ChatMessageRoleUser,
+				Content: user,
+			},
+			{
+				Role:    openai.ChatMessageRoleAssistant,
+				Content: assistant,
+			},
+		},
+		Functions:   funcDefs,
+		MaxTokens:   250,
+		Temperature: 0,
+		TopP:        1,
+		N:           1,
+		Stream:      false,
+	}
+	resp, err := c.client.CreateChatCompletion(context.Background(), req)
+	if err != nil {
+		return nil, fmt.Errorf("response failure for chat completion: %v", err)
+	}
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("empty response received")
+	}
+	if resp.Choices[0].Message.FunctionCall == nil {
+		return nil, fmt.Errorf("failed to vcall function: %#v", resp)
+	}
+	return resp.Choices[0].Message.FunctionCall, nil
 }
