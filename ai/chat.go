@@ -143,7 +143,7 @@ func (c *Chat) FunctionCalling(system, user, assistant string, funcDefs []openai
 		return nil, fmt.Errorf("empty response received")
 	}
 	if resp.Choices[0].Message.FunctionCall == nil {
-		return nil, fmt.Errorf("failed to vcall function: %#v", resp)
+		return nil, fmt.Errorf("failed to call function: %#v", resp)
 	}
 	return resp.Choices[0].Message.FunctionCall, nil
 }
