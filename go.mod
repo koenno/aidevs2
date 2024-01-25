@@ -6,7 +6,7 @@ require (
 	github.com/eapache/go-resiliency v1.5.0
 	github.com/google/uuid v1.5.0
 	github.com/qdrant/go-client v1.7.0
-	github.com/sashabaranov/go-openai v1.16.0
+	github.com/sashabaranov/go-openai v1.18.3
 	github.com/stretchr/testify v1.8.4
 	google.golang.org/grpc v1.60.1
 )

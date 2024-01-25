@@ -8,8 +8,9 @@ import (
 )
 
 type Chat struct {
-	client *openai.Client
-	model  string
+	client    *openai.Client
+	moderator *Moderator
+	model     string
 }
 
 type Option func(*Chat)
@@ -21,9 +22,13 @@ func WithModel(m string) Option {
 }
 
 func NewChat(openaiKey string, opts ...Option) *Chat {
+	client := openai.NewClient(openaiKey)
 	chat := &Chat{
-		client: openai.NewClient(openaiKey),
-		model:  openai.GPT3Dot5Turbo,
+		client: client,
+		moderator: &Moderator{
+			client: client,
+		},
+		model: openai.GPT3Dot5Turbo,
 	}
 	for _, o := range opts {
 		o(chat)
@@ -32,7 +37,7 @@ func NewChat(openaiKey string, opts ...Option) *Chat {
 }
 
 func (c *Chat) ModeratedChat(system, user, assistant string) (string, error) {
-	moderationRequired, err := c.Moderate(context.Background(), system)
+	moderationRequired, err := c.moderator.Moderate(context.Background(), system)
 	if err != nil {
 		return "", fmt.Errorf("failed to moderate entry: %v", err)
 	}
@@ -48,7 +53,7 @@ func (c *Chat) ModeratedChat(system, user, assistant string) (string, error) {
 
 func (c *Chat) ModeratedFunctionCalling(system, user, assistant string, funcDefs []openai.FunctionDefinition) (*openai.FunctionCall, error) {
 	msg := system + user + assistant
-	moderationRequired, err := c.Moderate(context.Background(), msg)
+	moderationRequired, err := c.moderator.Moderate(context.Background(), msg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to moderate entry: %v", err)
 	}
@@ -60,22 +65,6 @@ func (c *Chat) ModeratedFunctionCalling(system, user, assistant string, funcDefs
 		return nil, fmt.Errorf("failed to execute moderated function calling: %v", err)
 	}
 	return resp, nil
-}
-
-// Moderate returns true if moderation is required and the given entry does not fullfil openai usage policy
-func (c *Chat) Moderate(ctx context.Context, entry string) (bool, error) {
-	req := openai.ModerationRequest{
-		Input: entry,
-		Model: openai.ModerationTextLatest,
-	}
-	resp, err := c.client.Moderations(ctx, req)
-	if err != nil {
-		return false, fmt.Errorf("failed to call moderation openai entry: %v", err)
-	}
-	if len(resp.Results) == 0 {
-		return false, fmt.Errorf("no results in moderation response")
-	}
-	return resp.Results[0].Flagged, nil
 }
 
 func (c *Chat) CompleteChat(system, user, assistant string) (string, error) {
