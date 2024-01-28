@@ -11,9 +11,9 @@ type Moderator struct {
 	client *openai.Client
 }
 
-func NewModerator(client *openai.Client) *Moderator {
+func NewModerator(chat *Chat) *Moderator {
 	return &Moderator{
-		client: client,
+		client: chat.client,
 	}
 }
 
