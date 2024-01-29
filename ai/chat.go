@@ -36,7 +36,7 @@ func NewChat(openaiKey string, opts ...Option) *Chat {
 	return chat
 }
 
-func (c *Chat) ModeratedChat(system, user, assistant string) (string, error) {
+func (c *Chat) ModeratedChat(system string, userMsgs ...string) (string, error) {
 	moderationRequired, err := c.moderator.Moderate(context.Background(), system)
 	if err != nil {
 		return "", fmt.Errorf("failed to moderate entry: %v", err)
@@ -44,7 +44,7 @@ func (c *Chat) ModeratedChat(system, user, assistant string) (string, error) {
 	if moderationRequired {
 		return "", fmt.Errorf("entry breaks openai usage policies: %s", system)
 	}
-	resp, err := c.CompleteChat(system, user, assistant)
+	resp, err := c.CompleteChat(system, userMsgs...)
 	if err != nil {
 		return "", fmt.Errorf("failed to complete moderated chat: %v", err)
 	}
@@ -67,23 +67,23 @@ func (c *Chat) ModeratedFunctionCalling(system, user, assistant string, funcDefs
 	return resp, nil
 }
 
-func (c *Chat) CompleteChat(system, user, assistant string) (string, error) {
-	req := openai.ChatCompletionRequest{
-		Model: c.model,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: system,
-			},
-			{
-				Role:    openai.ChatMessageRoleUser,
-				Content: user,
-			},
-			{
-				Role:    openai.ChatMessageRoleAssistant,
-				Content: assistant,
-			},
+func (c *Chat) CompleteChat(system string, userMsgs ...string) (string, error) {
+	msgs := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: system,
 		},
+	}
+	for _, userMsg := range userMsgs {
+		msg := openai.ChatCompletionMessage{
+			Role:    openai.ChatMessageRoleUser,
+			Content: userMsg,
+		}
+		msgs = append(msgs, msg)
+	}
+	req := openai.ChatCompletionRequest{
+		Model:       c.model,
+		Messages:    msgs,
 		MaxTokens:   250,
 		Temperature: 0,
 		TopP:        1,

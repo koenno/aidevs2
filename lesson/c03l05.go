@@ -59,7 +59,7 @@ func (c C03L05Creator) Create(openaiKey string) TaskSolver {
 }
 
 type AIChat interface {
-	ModeratedChat(system, user, assistant string) (string, error)
+	ModeratedChat(system string, userMsgs ...string) (string, error)
 }
 
 type NoSQLDB interface {
@@ -218,7 +218,7 @@ Sentence:
 "%s"
 `, conversationRules, question)
 	user := "Person name"
-	answer, err := l.chat.ModeratedChat(system, user, "")
+	answer, err := l.chat.ModeratedChat(system, user)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to chat: %v", err)
 	}
@@ -251,7 +251,7 @@ Context:
 %s"
 `, conversationRules, person.Name, person.Surname, person.AboutMe)
 	user := question
-	answer, err := l.chat.ModeratedChat(system, user, "")
+	answer, err := l.chat.ModeratedChat(system, user)
 	if err != nil {
 		return "", fmt.Errorf("failed to chat: %v", err)
 	}

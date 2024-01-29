@@ -199,7 +199,7 @@ func (l C04L01) GetPopulation(params GetPopulationParams) (string, error) {
 
 func (l C04L01) GetGeneralAnswer(params GetGeneralAnswerParams) (string, error) {
 	user := params.Question
-	resp, err := l.chat.ModeratedChat("", user, "")
+	resp, err := l.chat.ModeratedChat("", user)
 	if err != nil {
 		return "", fmt.Errorf("failed to get answer: %v", err)
 	}
